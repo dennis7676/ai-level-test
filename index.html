@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI 사용자 레벨 자기진단</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    min-height: 100vh;
+    background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+    font-family: 'Apple SD Gothic Neo', 'Noto Sans KR', -apple-system, sans-serif;
+    color: #e0e0e0;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 2rem 1rem;
+  }
+  .container { max-width: 640px; width: 100%; }
+  .glass {
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 20px;
+    padding: 2rem;
+    margin-bottom: 1.5rem;
+  }
+  h1 {
+    font-size: 1.8rem; font-weight: 700; text-align: center; margin-bottom: 0.5rem;
+    background: linear-gradient(90deg, #a78bfa, #60a5fa);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .subtitle { text-align: center; color: rgba(255,255,255,0.5); font-size: 0.9rem; margin-bottom: 1rem; }
+  .q-number {
+    display: inline-block; background: linear-gradient(135deg, #a78bfa, #60a5fa);
+    color: #fff; width: 28px; height: 28px; border-radius: 50%;
+    text-align: center; line-height: 28px; font-size: 0.85rem; font-weight: 700; margin-right: 0.5rem;
+  }
+  .q-title { font-size: 1.05rem; font-weight: 600; margin-bottom: 1rem; line-height: 1.5; }
+  .options { display: flex; flex-direction: column; gap: 0.6rem; }
+  .option {
+    background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 12px; padding: 0.9rem 1rem; cursor: pointer; transition: all 0.2s; font-size: 0.95rem; line-height: 1.4;
+  }
+  .option:hover { background: rgba(167, 139, 250, 0.15); border-color: rgba(167, 139, 250, 0.4); }
+  .option.selected { background: rgba(167, 139, 250, 0.2); border-color: #a78bfa; box-shadow: 0 0 12px rgba(167, 139, 250, 0.2); }
+  .option-label {
+    display: inline-block; background: rgba(255,255,255,0.1); border-radius: 6px;
+    padding: 0.1rem 0.5rem; font-size: 0.8rem; margin-right: 0.5rem; font-weight: 600;
+  }
+  .btn-wrap { text-align: center; margin-top: 1.5rem; }
+  .btn {
+    background: linear-gradient(135deg, #a78bfa, #60a5fa); color: #fff; border: none;
+    border-radius: 14px; padding: 0.9rem 2.5rem; font-size: 1.05rem; font-weight: 600;
+    cursor: pointer; transition: all 0.3s; box-shadow: 0 4px 15px rgba(167, 139, 250, 0.3);
+  }
+  .btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(167, 139, 250, 0.4); }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+  .progress-bar { height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; margin-bottom: 1.5rem; overflow: hidden; }
+  .progress-fill { height: 100%; background: linear-gradient(90deg, #a78bfa, #60a5fa); border-radius: 2px; transition: width 0.4s ease; }
+  .hidden { display: none; }
+  .result-level {
+    text-align: center; font-size: 3.5rem; font-weight: 800; margin: 0.5rem 0;
+    background: linear-gradient(135deg, #a78bfa, #60a5fa, #34d399);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .result-name { text-align: center; font-size: 1.3rem; font-weight: 600; color: #c4b5fd; margin-bottom: 1.5rem; }
+  .meter-wrap { display: flex; justify-content: space-between; align-items: center; margin: 1.5rem 0; gap: 4px; }
+  .meter-seg { flex: 1; height: 8px; border-radius: 4px; background: rgba(255,255,255,0.08); transition: background 0.5s; }
+  .meter-seg.active { background: linear-gradient(90deg, #a78bfa, #60a5fa); }
+  .meter-labels { display: flex; justify-content: space-between; font-size: 0.7rem; color: rgba(255,255,255,0.35); margin-top: 0.3rem; }
+  .section-title { font-size: 1rem; font-weight: 700; color: #a78bfa; margin: 1.5rem 0 0.8rem; padding-bottom: 0.4rem; border-bottom: 1px solid rgba(167,139,250,0.2); }
+  .desc { font-size: 0.95rem; line-height: 1.7; color: rgba(255,255,255,0.75); }
+  .guide-item { background: rgba(255,255,255,0.05); border-radius: 10px; padding: 0.8rem 1rem; margin-bottom: 0.5rem; font-size: 0.9rem; line-height: 1.5; border-left: 3px solid #a78bfa; }
+  .retry-btn { background: transparent; border: 1px solid rgba(255,255,255,0.2); color: rgba(255,255,255,0.6); border-radius: 10px; padding: 0.6rem 1.5rem; cursor: pointer; font-size: 0.9rem; margin-top: 1rem; }
+  .retry-btn:hover { border-color: #a78bfa; color: #a78bfa; }
+  .tag { display: inline-block; background: rgba(167,139,250,0.15); border: 1px solid rgba(167,139,250,0.3); border-radius: 20px; padding: 0.2rem 0.7rem; font-size: 0.75rem; color: #c4b5fd; margin-right: 0.3rem; margin-bottom: 0.3rem; }
+</style>
+</head>
+<body>
+<div class="container">
+  <div id="intro" class="glass">
+    <h1>AI Level Check</h1>
+    <p class="subtitle">5 questions / 2 min / instant feedback</p>
+    <p class="desc" style="text-align:center; margin: 1rem 0;">
+      AI 활용 수준을 7단계로 진단합니다.<br>가장 가까운 답을 고르세요.
+    </p>
+    <div class="btn-wrap"><button class="btn" onclick="startQuiz()">시작하기</button></div>
+  </div>
+  <div id="quiz" class="hidden">
+    <div class="progress-bar"><div class="progress-fill" id="progress" style="width:0%"></div></div>
+    <div id="question-area"></div>
+    <div class="btn-wrap"><button class="btn" id="nextBtn" onclick="nextQuestion()" disabled>다음</button></div>
+  </div>
+  <div id="result" class="hidden"></div>
+</div>
+<script>
+const Q=[
+  {q:"AI에게 요청할 때 나의 방식은?",o:["떠오르는 대로 질문한다","역할/맥락/제약을 나눠서 작성한다","사전 등록된 프로젝트에서 이어서 작업한다","작업에 맞는 도구를 먼저 선택한 후 요청한다"]},
+  {q:"반복 작업이 생겼을 때 나의 반응은?",o:["매번 직접 한다","프롬프트를 저장해뒀다가 붙여넣는다","자동화 도구로 트리거를 설정한다","에이전트가 자율적으로 처리하도록 시스템을 설계한다"]},
+  {q:"AI 도구 사용 현황은?",o:["ChatGPT 하나만 사용","2-3개 도구를 상황에 따라 선택","자동화 플랫폼(n8n/Zapier)과 연동하여 사용","코딩 도구로 직접 에이전트/앱을 빌드"]},
+  {q:"AI가 만든 결과물이 불만족스러울 때?",o:["다시 질문하거나 포기한다","프롬프트를 수정해서 재시도한다","피드백 루프를 설계해서 자동으로 개선시킨다","평가 메트릭을 정의하고 에이전트가 자동 반복 개선하게 한다"]},
+  {q:"\"AI 시스템\"이라고 부를 만한 것을 만들어 본 적 있나요?",o:["없다","프롬프트 템플릿/프로젝트 세팅 정도","자동화 워크플로우를 만들어 운영 중","복수 에이전트가 협업하는 시스템을 운영 중"]}
+];
+const L=[
+  {lv:1,nm:"검색 대체자",desc:"AI를 똑똑한 검색엔진처럼 사용하는 단계입니다. 질문하고 답을 받는 기본적인 활용에 머물러 있어요.",tags:["단답형 질문","이메일 초안","요약 요청"],guides:["프롬프트에 '역할/맥락/제약'을 넣어보세요. 예: \"너는 마케팅 전문가야. 20대 대상 SNS 카피를 3개 써줘.\"","좋은 결과가 나온 프롬프트를 메모장에 저장하기 시작하세요.","같은 질문을 표현만 바꿔서 3번 해보세요 \u2014 결과 차이를 관찰하는 것이 첫 걸음입니다."]},
+  {lv:2,nm:"프롬프트 설계자",desc:"입력의 구조가 결과를 바꾼다는 것을 이해한 단계입니다. 프롬프트를 의도적으로 설계하고 개선합니다.",tags:["구조화된 프롬프트","Few-shot","프롬프트 저장"],guides:["ChatGPT Projects 또는 Claude Projects를 세팅하세요 \u2014 매번 같은 설명을 반복할 필요가 없어집니다.","자주 하는 작업의 SOP(표준 작업 절차)를 AI 프로젝트에 등록하세요.","마음에 드는 결과가 나왔을 때 '이 결과를 만든 프롬프트를 역으로 만들어줘'라고 요청해보세요."]},
+  {lv:3,nm:"컨텍스트 관리자",desc:"지속적인 작업공간을 만들어 맥락 재입력을 제거한 단계입니다. 여러 AI 도구의 차이를 체감합니다.",tags:["Projects/작업공간","브랜드톤 저장","도구 비교"],guides:["지금 쓰는 AI 외에 2번째 도구를 써보세요. NotebookLM(리서치), Perplexity(검색) 추천.","'이 작업에 최적 도구는 뭘까?' 질문을 습관화하세요.","Canvas/Artifacts로 간단한 코드를 직접 생성해 즉시 활용하는 경험을 해보세요."]},
+  {lv:4,nm:"도구 선택자",desc:"작업 목적에 따라 최적 도구를 골라 쓰는 단계입니다. AI로 내부 도구와 프로토타입을 직접 만들기 시작합니다.",tags:["목적별 도구 선택","프로토타이핑","내부 도구 생성"],guides:["n8n 또는 Zapier로 첫 자동화를 만들어보세요. 반복 작업 1개를 '트리거 \u2192 자동 실행'으로 전환.","'무엇이 충족되면 자동화 가능한가?' 관점으로 반복 업무를 분석하세요.","Google AI Studio나 Lovable로 내부 도구/대시보드를 만들어보세요."]},
+  {lv:5,nm:"자동화 설계자",desc:"트리거 기반 자동화를 설계하고 운영하는 단계입니다. '더 빠르게'가 아니라 '아예 자동으로'를 목표로 합니다.",tags:["워크플로우 자동화","트리거 설계","무인 운영"],guides:["Claude Code 또는 Cursor로 첫 앱/봇을 빌드해보세요.","에이전트에게 '계획 \u2192 실행 \u2192 검증' 순서를 강제하는 경험을 해보세요.","자동화가 실패했을 때 직접 디버깅하는 능력을 키우세요 \u2014 이것이 Lv.6과의 차이입니다."]},
+  {lv:6,nm:"시스템 빌더",desc:"AI 에이전트와 코딩 도구로 복잡한 시스템을 구축하는 단계입니다. 장기 기억, 도구 연동, 에이전트 워크플로우를 다룹니다.",tags:["에이전트 빌드","시스템 설계","코딩 도구"],guides:["복수 에이전트 핸드오프를 설계해보세요 \u2014 계획 AI, 실행 AI, 검토 AI를 분리.","메트릭 기반 성과 모니터링을 도입하세요 \u2014 에이전트가 잘 하고 있는지 측정.","스킬/플러그인/프롬프트를 재사용 가능한 자산으로 관리하기 시작하세요."]},
+  {lv:7,nm:"AI 워크포스 오케스트레이터",desc:"다수 에이전트가 비즈니스 프로세스를 자율 운영하는 단계입니다. 사람의 역할이 '작업자'에서 '감독자/설계자'로 전환됩니다.",tags:["멀티 에이전트","자율 운영","오케스트레이션"],guides:["에이전트 간 의존성/충돌 관리 체계를 정교화하세요.","에이전트 성과를 대시보드로 모니터링하고, 실패 패턴을 자동 감지하세요.","새로운 에이전트 역할을 설계할 때 '이 역할이 없어도 시스템이 돌아가는가?'를 먼저 질문하세요."]}
+];
+let cur=0,ans=[];
+function startQuiz(){document.getElementById('intro').classList.add('hidden');document.getElementById('quiz').classList.remove('hidden');showQ(0)}
+function showQ(i){
+  const q=Q[i],a=document.getElementById('question-area');
+  while(a.firstChild)a.removeChild(a.firstChild);
+  const card=document.createElement('div');card.className='glass';
+  const title=document.createElement('div');title.className='q-title';
+  const num=document.createElement('span');num.className='q-number';num.textContent=i+1;
+  title.appendChild(num);title.appendChild(document.createTextNode(q.q));card.appendChild(title);
+  const opts=document.createElement('div');opts.className='options';
+  q.o.forEach(function(txt,j){
+    const opt=document.createElement('div');opt.className='option';opt.setAttribute('data-val',j);
+    const lbl=document.createElement('span');lbl.className='option-label';lbl.textContent=String.fromCharCode(65+j);
+    opt.appendChild(lbl);opt.appendChild(document.createTextNode(txt));
+    opt.addEventListener('click',function(){selectOpt(j,opt)});
+    opts.appendChild(opt);
+  });
+  card.appendChild(opts);a.appendChild(card);
+  document.getElementById('progress').style.width=(i/Q.length*100)+'%';
+  document.getElementById('nextBtn').disabled=true;
+  document.getElementById('nextBtn').textContent=i===Q.length-1?'결과 보기':'다음';
+}
+function selectOpt(v,el){ans[cur]=v+1;document.querySelectorAll('.option').forEach(function(o){o.classList.remove('selected')});el.classList.add('selected');document.getElementById('nextBtn').disabled=false}
+function nextQuestion(){cur++;if(cur<Q.length)showQ(cur);else showResult()}
+function showResult(){
+  document.getElementById('quiz').classList.add('hidden');
+  var r=document.getElementById('result');r.classList.remove('hidden');
+  while(r.firstChild)r.removeChild(r.firstChild);
+  var total=ans.reduce(function(a,b){return a+b},0);
+  var li;
+  if(total<=7)li=0;else if(total<=9)li=1;else if(total<=11)li=2;else if(total<=14)li=3;else if(total<=16)li=4;else if(total<=18)li=5;else li=6;
+  var lv=L[li],nx=li<6?L[li+1]:null;
+  // Level card
+  var c1=document.createElement('div');c1.className='glass';
+  var st=document.createElement('p');st.className='subtitle';st.textContent='당신의 AI 활용 레벨은';c1.appendChild(st);
+  var rl=document.createElement('div');rl.className='result-level';rl.textContent='Lv.'+lv.lv;c1.appendChild(rl);
+  var rn=document.createElement('div');rn.className='result-name';rn.textContent=lv.nm;c1.appendChild(rn);
+  var mw=document.createElement('div');mw.className='meter-wrap';
+  for(var i=0;i<7;i++){var s=document.createElement('div');s.className='meter-seg'+(i<=li?' active':'');mw.appendChild(s)}
+  c1.appendChild(mw);
+  var ml=document.createElement('div');ml.className='meter-labels';
+  ['Lv.1','Lv.4','Lv.7'].forEach(function(t){var sp=document.createElement('span');sp.textContent=t;ml.appendChild(sp)});
+  c1.appendChild(ml);
+  var tw=document.createElement('div');tw.style.marginTop='1rem';
+  lv.tags.forEach(function(t){var tg=document.createElement('span');tg.className='tag';tg.textContent=t;tw.appendChild(tg)});
+  c1.appendChild(tw);r.appendChild(c1);
+  // Description
+  var c2=document.createElement('div');c2.className='glass';
+  var t2=document.createElement('div');t2.className='section-title';t2.textContent='현재 단계 설명';c2.appendChild(t2);
+  var d2=document.createElement('p');d2.className='desc';d2.textContent=lv.desc;c2.appendChild(d2);r.appendChild(c2);
+  // Guide
+  var c3=document.createElement('div');c3.className='glass';
+  var t3=document.createElement('div');t3.className='section-title';
+  if(nx){t3.textContent='Lv.'+nx.lv+' '+nx.nm+'(으)로 올라가려면';c3.appendChild(t3);
+    nx.guides.forEach(function(g){var gi=document.createElement('div');gi.className='guide-item';gi.textContent=g;c3.appendChild(gi)});
+  }else{t3.textContent='최고 레벨 도달!';c3.appendChild(t3);
+    var dp=document.createElement('p');dp.className='desc';dp.textContent='AI 활용의 최상위 단계에 있습니다. 에이전트 오케스트레이션을 더 정교화하고, 후배/동료에게 시스템 설계를 전수하는 역할을 고려해보세요.';c3.appendChild(dp);
+    lv.guides.forEach(function(g){var gi=document.createElement('div');gi.className='guide-item';gi.textContent=g;c3.appendChild(gi)});
+  }
+  r.appendChild(c3);
+  // Score + retry
+  var c4=document.createElement('div');c4.className='glass';c4.style.textAlign='center';
+  var sc=document.createElement('p');sc.className='desc';sc.style.marginBottom='1rem';
+  sc.textContent='문항 응답: '+ans.map(function(a,i){return 'Q'+(i+1)+'='+String.fromCharCode(64+a)}).join(' / ')+' | 총점: '+total+'/20';
+  c4.appendChild(sc);
+  var rb=document.createElement('button');rb.className='retry-btn';rb.textContent='다시 진단하기';
+  rb.addEventListener('click',function(){location.reload()});c4.appendChild(rb);r.appendChild(c4);
+}
+</script>
+</body>
+</html>
